@@ -1,12 +1,9 @@
 package certmagic
 
 import (
-	"context"
-	"errors"
 	"log"
 	"runtime"
 	"sync"
-	"time"
 
 	"go.uber.org/zap"
 )
@@ -83,62 +80,6 @@ func (jm *jobManager) worker() {
 	}
 }
 
-func doWithRetry(ctx context.Context, log *zap.Logger, f func(context.Context) error) error {
-	var attempts int
-	ctx = context.WithValue(ctx, AttemptsCtxKey, &attempts)
-
-	// the initial intervalIndex is -1, signaling
-	// that we should not wait for the first attempt
-	start, intervalIndex := time.Now(), -1
-	var err error
-
-	for time.Since(start) < maxRetryDuration {
-		var wait time.Duration
-		if intervalIndex >= 0 {
-			wait = retryIntervals[intervalIndex]
-		}
-		timer := time.NewTimer(wait)
-		select {
-		case <-ctx.Done():
-			timer.Stop()
-			return context.Canceled
-		case <-timer.C:
-			err = f(ctx)
-			attempts++
-			if err == nil || errors.Is(err, context.Canceled) {
-				return err
-			}
-			var errNoRetry ErrNoRetry
-			if errors.As(err, &errNoRetry) {
-				return err
-			}
-			if intervalIndex < len(retryIntervals)-1 {
-				intervalIndex++
-			}
-			if time.Since(start) < maxRetryDuration {
-				if log != nil {
-					log.Error("will retry",
-						zap.Error(err),
-						zap.Int("attempt", attempts),
-						zap.Duration("retrying_in", retryIntervals[intervalIndex]),
-						zap.Duration("elapsed", time.Since(start)),
-						zap.Duration("max_duration", maxRetryDuration))
-				}
-			} else {
-				if log != nil {
-					log.Error("final attempt; giving up",
-						zap.Error(err),
-						zap.Int("attempt", attempts),
-						zap.Duration("elapsed", time.Since(start)),
-						zap.Duration("max_duration", maxRetryDuration))
-				}
-				return nil
-			}
-		}
-	}
-	return err
-}
-
 // ErrNoRetry is an error type which signals
 // to stop retries early.
 type ErrNoRetry struct{ Err error }
@@ -154,34 +95,3 @@ type retryStateCtxKey struct{}
 // how many times the operation has been attempted.
 // A value of 0 means first attempt.
 var AttemptsCtxKey retryStateCtxKey
-
-// retryIntervals are based on the idea of exponential
-// backoff, but weighed a little more heavily to the
-// front. We figure that intermittent errors would be
-// resolved after the first retry, but any errors after
-// that would probably require at least a few minutes
-// to clear up: either for DNS to propagate, for the
-// administrator to fix their DNS or network properties,
-// or some other external factor needs to change. We
-// chose intervals that we think will be most useful
-// without introducing unnecessary delay. The last
-// interval in this list will be used until the time
-// of maxRetryDuration has elapsed.
-var retryIntervals = []time.Duration{
-	1 * time.Minute,
-	2 * time.Minute,
-	2 * time.Minute,
-	5 * time.Minute, // elapsed: 10 min
-	10 * time.Minute,
-	20 * time.Minute,
-	20 * time.Minute, // elapsed: 1 hr
-	30 * time.Minute,
-	30 * time.Minute, // elapsed: 2 hr
-	1 * time.Hour,
-	3 * time.Hour, // elapsed: 6 hr
-	6 * time.Hour, // for up to maxRetryDuration
-}
-
-// maxRetryDuration is the maximum duration to try
-// doing retries using the above intervals.
-const maxRetryDuration = 24 * time.Hour * 30
