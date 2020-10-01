@@ -288,16 +288,13 @@ func (c *acmeClient) Obtain(name string) error {
 challengeLoop:
 	for len(challenges) > 0 {
 		chosenChallenge, challenges = c.nextChallenge(challenges)
-		const maxAttempts = 3
-		for attempts := 0; attempts < maxAttempts; attempts++ {
-			err = c.tryObtain(name)
-			if err == nil {
-				break challengeLoop
-			}
-			log.Printf("[ERROR][%s] %s (attempt %d/%d; challenge=%s)",
-				name, strings.TrimSpace(err.Error()), attempts+1, maxAttempts, chosenChallenge)
-			time.Sleep(1 * time.Second)
+		err = c.tryObtain(name)
+		if err == nil {
+			break challengeLoop
 		}
+		log.Printf("[ERROR][%s] %s (challenge=%s)",
+			name, strings.TrimSpace(err.Error()), chosenChallenge)
+		time.Sleep(1 * time.Second)
 	}
 	if err != nil {
 		return err
