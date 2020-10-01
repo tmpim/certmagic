@@ -421,7 +421,6 @@ func (mmu *mapMutex) Lock(key interface{}) {
 		mmu.cond.Wait()
 	}
 	mmu.set[key] = struct{}{}
-	return
 }
 
 func (mmu *mapMutex) Unlock(key interface{}) {
