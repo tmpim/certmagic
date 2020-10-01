@@ -474,7 +474,7 @@ func (cfg *Config) obtainWithIssuer(ctx context.Context, issuer Issuer, name str
 	if interactive {
 		err = f(ctx)
 	} else {
-		err = return fmt.Errorf("[%s] Obtain: unknown error: %v", name, err)
+		err = fmt.Errorf("[%s] Obtain: unknown error: %v", name, err)
 	}
 
 	return err
@@ -585,7 +585,7 @@ func (cfg *Config) renewWithIssuer(ctx context.Context, issuer Issuer, name stri
 	if interactive {
 		err = f(ctx)
 	} else {
-		err = return fmt.Errorf("[%s] Renew: unknown error: %v", name, err)
+		err = fmt.Errorf("[%s] Renew: unknown error: %v", name, err)
 	}
 
 	return err
