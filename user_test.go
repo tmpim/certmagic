@@ -25,7 +25,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/go-acme/lego/v3/registration"
+	"github.com/go-acme/lego/v4/registration"
 )
 
 func TestUser(t *testing.T) {

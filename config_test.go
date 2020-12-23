@@ -19,7 +19,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/go-acme/lego/v3/certificate"
+	"github.com/go-acme/lego/v4/certificate"
 )
 
 func TestSaveCertResource(t *testing.T) {
